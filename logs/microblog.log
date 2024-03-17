@@ -1,6 +1,40 @@
-2024-03-14 20:55:58,329 INFO: Microblog startup [in c:\Users\23198\Documents\JAPHET PROJECT-003\app\__init__.py:80]
-2024-03-14 20:55:59,726 INFO: Microblog startup [in c:\Users\23198\Documents\JAPHET PROJECT-003\app\__init__.py:80]
-2024-03-17 08:39:32,352 INFO: Microblog startup [in /workspaces/js/app/__init__.py:80]
-2024-03-17 08:56:24,011 INFO: Microblog startup [in /workspaces/js/app/__init__.py:80]
-2024-03-17 08:56:25,603 INFO: Microblog startup [in /workspaces/js/app/__init__.py:80]
-2024-03-17 08:58:41,745 INFO: Microblog startup [in /workspaces/js/app/__init__.py:80]
+2024-03-17 17:35:14,009 ERROR: Exception on /index [GET] [in C:\Users\Hp\OneDrive\Documents\clone\js\.venv\Lib\site-packages\flask\app.py:828]
+Traceback (most recent call last):
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\.venv\Lib\site-packages\flask\app.py", line 1463, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\.venv\Lib\site-packages\flask\app.py", line 872, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\.venv\Lib\site-packages\flask\app.py", line 870, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\.venv\Lib\site-packages\flask\app.py", line 855, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\.venv\Lib\site-packages\flask_login\utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\app\main\routes.py", line 50, in index
+    return render_template('index.html', title=_('Home'), form=form,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\.venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\.venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\.venv\Lib\site-packages\jinja2\environment.py", line 1301, in render
+    self.environment.handle_exception()
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\.venv\Lib\site-packages\jinja2\environment.py", line 936, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\app\templates\index.html", line 2, in top-level template code
+    {% import "bootstrap_wtf.html" as wtf %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\app\templates\base.html", line 68, in top-level template code
+    {% if current_user.is_authenticated %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hp\OneDrive\Documents\clone\js\app\models.py", line 149, in get_tasks_in_progress
+    query = self.tasks.select().where(Task.complete == False)
+            ^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'tasks'
