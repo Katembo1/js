@@ -11,7 +11,8 @@ from time import time
 import jwt
 from app.search import add_to_index, remove_from_index, query_index
 
-
+import json
+from time import time
 followers = sa.Table(
     'followers',
     db.metadata,
@@ -20,6 +21,15 @@ followers = sa.Table(
     sa.Column('followed_id', sa.Integer, sa.ForeignKey('user.id'),
               primary_key=True)
 )
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    body = db.Column(db.String(140))
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    def __repr__(self):
+        return '<Message {}>'.format(self.body)
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
@@ -28,6 +38,20 @@ class User(UserMixin, db.Model):
     posts = db.relationship('Post', backref='author', lazy='dynamic')
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime, default=datetime.utcnow) 
+    messages_sent = db.relationship('Message',
+                foreign_keys='Message.sender_id',
+                backref='author', lazy='dynamic')
+    messages_received = db.relationship('Message',
+                foreign_keys='Message.recipient_id',
+                backref='recipient', lazy='dynamic')
+    last_message_read_time = db.Column(db.DateTime)
+    notifications = db.relationship('Notification', backref='user',
+                    lazy='dynamic')
+
+    def new_messages(self):
+        last_read_time = self.last_message_read_time or datetime(1900, 1, 1)
+        return Message.query.filter_by(recipient=self).filter(
+                Message.timestamp > last_read_time).count()
     def __repr__(self):
         return '<User {}>'.format(self.username)
     def set_password(self, password):
@@ -39,6 +63,11 @@ class User(UserMixin, db.Model):
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
             digest, size)
     
+    def add_notification(self, name, data):
+        self.notifications.filter_by(name=name).delete()
+        n = Notification(name=name, payload_json=json.dumps(data), user=self)
+        db.session.add(n)
+        return n
     def follow(self, user):
         if not self.is_following(user):
             self.following.add(user)
@@ -101,8 +130,32 @@ class User(UserMixin, db.Model):
             except:
                 return
             return db.session.get(User, id)
-    @login.user_loader
-    def load_user(id):
+  
+    def unread_message_count(self):
+            last_read_time = self.last_message_read_time or datetime(1900, 1, 1)
+            query = sa.select(Message).where(Message.recipient == self,
+                                            Message.timestamp > last_read_time)
+            return db.session.scalar(sa.select(sa.func.count()).select_from(
+                query.subquery()))
+    def launch_task(self, name, description, *args, **kwargs):
+            rq_job = current_app.task_queue.enqueue(f'app.tasks.{name}', self.id,
+                                                    *args, **kwargs)
+            task = Task(id=rq_job.get_id(), name=name, description=description,
+                        user=self)
+            db.session.add(task)
+            return task
+
+    def get_tasks_in_progress(self):
+        query = self.tasks.select().where(Task.complete == False)
+        return db.session.scalars(query)
+
+    def get_task_in_progress(self, name):
+        query = self.tasks.select().where(Task.name == name,
+                                          Task.complete == False)
+        return db.session.scalar(query)
+
+@login.user_loader
+def load_user(id):
                     return User.query.get(int(id))
 
 class SearchableMixin(object):
@@ -139,8 +192,8 @@ class SearchableMixin(object):
     def reindex(cls):
         for obj in cls.query:
              add_to_index(cls.__tablename__, obj)
-db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
-db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
+        db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
+        db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
     
 class Post(SearchableMixin,db.Model):
     __searchable__ = ['body']
@@ -151,3 +204,11 @@ class Post(SearchableMixin,db.Model):
     language = db.Column(db.String(5))
     def __repr__(self):
         return '<Post {}>'.format(self.body)
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    timestamp = db.Column(db.Float, index=True, default=time)
+    payload_json = db.Column(db.Text)
+def get_data(self):
+    return json.loads(str(self.payload_json))
